@@ -1,6 +1,7 @@
 // ===== CONFIG =====
-const API_BASE = "https://smn.itstarsec.workers.dev";
-const UI_REFRESH_MS = 8000; // UI polling (edge cache sẽ giảm KV reads)
+// ⚠️ sửa đúng domain worker (KHÔNG .workers.dev.workers.dev)
+const API_BASE = "https://smn.itstarsec.workers.dev";  // <-- đổi nếu cần
+const UI_REFRESH_MS = 8000;
 
 // ===== DOM helpers =====
 const $ = (s) => document.querySelector(s);
@@ -15,12 +16,12 @@ const state = {
 };
 
 async function api(path) {
-  const res = await fetch(`${API_BASE}${path}`, { method: "GET" });
-  // Nếu CORS lỗi hoặc Worker down sẽ throw
-  const data = await res.json();
-  if (!res.ok) {
-    throw new Error(data?.error || `HTTP ${res.status}`);
-  }
+  // an toàn tuyệt đối, tránh ghép sai URL
+  const url = new URL(path, API_BASE);
+
+  const res = await fetch(url.toString(), { method: "GET" });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data?.error || `HTTP ${res.status}`);
   return data;
 }
 
@@ -54,12 +55,10 @@ function fmtVnd(n) {
   if (typeof n !== "number") return String(n);
   return n.toLocaleString("vi-VN") + " VND";
 }
-
 function fmtNum(n) {
   if (typeof n !== "number") return String(n);
   return n.toLocaleString("vi-VN");
 }
-
 function escapeHtml(s) {
   return String(s).replace(/[&<>"']/g, (m) => ({
     "&": "&amp;",
@@ -74,6 +73,7 @@ function escapeHtml(s) {
 function renderScenarioList() {
   const el = $("#scenarioList");
   if (!el) return;
+
   el.innerHTML = (state.scenarios || []).map((s) => `
     <div class="sc-item">
       <div class="sc-title">${escapeHtml(s.name)}</div>
@@ -121,6 +121,7 @@ function renderSignalsTable(sid, rows) {
       ${cols.map((c) => `<div class="tcell">${escapeHtml(c)}</div>`).join("")}
     </div>
   `;
+
   const body = outRows.map((r) => `
     <div class="trow" style="grid-template-columns:${grid}">
       ${r.map((v) => `<div class="tcell">${escapeHtml(v)}</div>`).join("")}
@@ -142,6 +143,7 @@ function renderWatchSnapshotTable(rowsHot, rowsFlow, watchlist) {
 
   const hotMap = new Map((rowsHot || []).map((r) => [r[0], r]));
   const flowMap = new Map((rowsFlow || []).map((r) => [r[0], r]));
+
   const symbols = (watchlist && watchlist.length ? watchlist : Array.from(new Set([...hotMap.keys(), ...flowMap.keys()])))
     .slice(0, 12);
 
@@ -192,11 +194,59 @@ function renderBrief(summary, hotRows, spikeRows) {
 - Trades: ${cnt}
 
 Cách dùng:
-- HOT: biết mã đang được chú ý (độ sôi động).
+- HOT: biết mã đang được chú ý.
 - NET FLOW: cảm nhận lực mua/bán ròng.
-- SPIKE: bắt bất thường ngắn hạn (tự kiểm chứng giá/volume bên ngoài).`;
+- SPIKE: bắt bất thường ngắn hạn (tự kiểm chứng chart/giá).`;
 
   box.textContent = text;
+}
+
+// ===== Decision Badge Engine =====
+function updateDecision(summary, flowRows, spikeRows) {
+  const badge = $("#decisionBadge");
+  if (!badge) return;
+
+  const pulse = summary?.market?.pulse || "—";
+  const hot = Number(summary?.market?.hotScore ?? 0);
+
+  // netFlow = sum(buy - sell) trong flowRows
+  const netFlow = (flowRows || []).reduce((s, r) => s + ((Number(r[1]) || 0) - (Number(r[2]) || 0)), 0);
+
+  // bestSpike = max spikeX
+  const bestSpike = Math.max(0, ...(spikeRows || []).map((r) => Number(r[1]) || 0));
+  const topSpikeSym = (spikeRows?.[0]?.[0]) || "—";
+  const topSymbol = summary?.market?.topSymbol || "—";
+
+  // RULES
+  const isSetupSpike =
+    pulse === "Nghiêng mua" &&
+    netFlow > 500_000_000 &&
+    bestSpike >= 2.0 &&
+    hot < 80;
+
+  const isLateTrend =
+    pulse === "Nghiêng mua" &&
+    netFlow > 0 &&
+    bestSpike < 2.0 &&
+    hot >= 75;
+
+  if (isSetupSpike) {
+    badge.className = "decision buy";
+    badge.innerHTML = `🟢 SETUP SPIKE — vào mã spike
+      <small>Net Flow dương mạnh, spike nổi bật (${topSpikeSym}), Hot Score chưa quá cao → ưu tiên “vào sớm”.</small>`;
+    return;
+  }
+
+  if (isLateTrend) {
+    badge.className = "decision late";
+    badge.innerHTML = `🟡 LATE TREND — follow top
+      <small>Thị trường nóng, spike không rõ → nếu follow (${topSymbol}) thì đánh nhỏ & chốt nhanh.</small>`;
+    return;
+  }
+
+  badge.className = "decision no";
+  badge.innerHTML = `🔴 NO TRADE ZONE — đứng ngoài
+    <small>Chưa có edge rõ ràng (Pulse/Net Flow/Spike/Hot Score chưa đồng thuận).</small>`;
 }
 
 // ===== Data refresh =====
@@ -216,7 +266,7 @@ async function refreshAll(reason = "auto") {
     state.scenarios = sc.scenarios || [];
     renderScenarioList();
 
-    // summary
+    // summary tiles
     $("#pulse").textContent = summary.market.pulse;
     $("#topSymbol").textContent = summary.market.topSymbol;
     $("#hotScore").textContent = String(summary.market.hotScore);
@@ -224,6 +274,9 @@ async function refreshAll(reason = "auto") {
     $("#sellAmt").textContent = fmtVnd(summary.totals.sellAmount);
     $("#tradeCnt").textContent = fmtNum(summary.totals.tradeCount);
     $("#lastTs").textContent = new Date(summary.ts).toLocaleTimeString();
+
+    // decision badge (5-block engine)
+    updateDecision(summary, flow.rows, spike.rows);
 
     // current signals tab
     const cur = await api(`/api/data?id=${encodeURIComponent(state.scenario)}`);
@@ -233,7 +286,7 @@ async function refreshAll(reason = "auto") {
     renderWatchlist(watch.rows);
     renderWatchSnapshotTable(hot.rows, flow.rows, watch.rows);
 
-    // report
+    // reports
     renderBrief(summary, hot.rows, spike.rows);
 
     addLog(`refresh (${reason}) • ok`);
