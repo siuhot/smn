@@ -1,5 +1,5 @@
 // ===== CONFIG =====
-const API_BASE = "https://smn.itstarsec.workers.dev.workers.dev";
+const API_BASE = "https://smn.itstarsec.workers.dev";
 const UI_REFRESH_MS = 8000; // UI polling (edge cache sẽ giảm KV reads)
 
 // ===== DOM helpers =====
