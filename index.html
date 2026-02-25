@@ -3,11 +3,16 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="color-scheme" content="light dark" />
   <title>SMS Insights</title>
-  <link rel="stylesheet" href="./public/app.css" />
+
+  <!-- GitHub Pages static assets -->
+  <link rel="stylesheet" href="./app.css" />
 </head>
+
 <body>
   <div class="app">
+    <!-- SIDEBAR -->
     <aside class="sidebar">
       <div class="brand">
         <div class="logo">◎</div>
@@ -25,22 +30,26 @@
 
       <div class="foot">
         <div class="pill" id="modePill">MODE: FIXED</div>
-        <div class="muted" id="ver">v0.1</div>
+        <div class="muted" id="ver">v0.2</div>
       </div>
     </aside>
 
+    <!-- MAIN -->
     <main class="main">
+      <!-- TOPBAR -->
       <header class="topbar">
         <div class="status">
           <div class="k">Nguồn:</div>
-          <div class="v">Mock</div>
+          <div class="v" id="sourceName">Worker (Fake KV)</div>
+
           <div class="sep"></div>
+
           <div class="k">Cập nhật:</div>
           <div class="v" id="lastTs">—</div>
         </div>
 
         <div class="actions">
-          <button class="btn ghost" id="btnRefresh">Làm mới</button>
+          <button class="btn ghost" id="btnRefresh" title="Làm mới dữ liệu">Làm mới</button>
         </div>
       </header>
 
@@ -50,45 +59,66 @@
         <div class="card" id="view-overview">
           <h2>Tổng quan thị trường (từ log SMS)</h2>
 
+          <!-- Decision Badge (auto by app.js) -->
+          <div id="decisionBadge" class="decision neutral">— Đang phân tích —</div>
+
           <div class="tiles">
             <div class="tile">
               <div class="t-k">Market Pulse</div>
               <div class="t-v" id="pulse">—</div>
-              <div class="t-h" id="pulseHint">Trạng thái tổng hợp từ các kịch bản</div>
+              <div class="t-h" id="pulseHint">Bias tổng hợp từ 5 khối insight</div>
             </div>
+
             <div class="tile">
               <div class="t-k">Top Symbol</div>
               <div class="t-v" id="topSymbol">—</div>
-              <div class="t-h">Mã nổi bật gần nhất</div>
+              <div class="t-h">Mã được chú ý nhất (radar)</div>
             </div>
+
             <div class="tile">
               <div class="t-k">Hot Score</div>
               <div class="t-v" id="hotScore">—</div>
-              <div class="t-h">0–100 (chuẩn hoá)</div>
+              <div class="t-h">0–100 (độ “nóng” / FOMO)</div>
             </div>
           </div>
 
           <div class="grid2">
             <div class="panel">
-              <div class="sub">Kịch bản nhanh</div>
+              <div class="sub">Kịch bản cố định</div>
               <div class="scenario-list" id="scenarioList"></div>
-              <div class="hint">Không cho drill sâu. Chỉ xem theo kịch bản cố định.</div>
+              <div class="hint">
+                Không cho drill sâu. Người dùng chỉ xem theo các kịch bản đã định nghĩa sẵn để ra quyết định mua/bán theo ý họ.
+              </div>
             </div>
+
             <div class="panel">
               <div class="sub">Tóm tắt phiên</div>
               <div class="kv">
-                <div class="kv-row"><div class="kv-k">Buy Amount</div><div class="kv-v" id="buyAmt">—</div></div>
-                <div class="kv-row"><div class="kv-k">Sell Amount</div><div class="kv-v" id="sellAmt">—</div></div>
-                <div class="kv-row"><div class="kv-k">Trade Count</div><div class="kv-v" id="tradeCnt">—</div></div>
+                <div class="kv-row">
+                  <div class="kv-k">Buy Amount</div>
+                  <div class="kv-v" id="buyAmt">—</div>
+                </div>
+                <div class="kv-row">
+                  <div class="kv-k">Sell Amount</div>
+                  <div class="kv-v" id="sellAmt">—</div>
+                </div>
+                <div class="kv-row">
+                  <div class="kv-k">Trade Count</div>
+                  <div class="kv-v" id="tradeCnt">—</div>
+                </div>
               </div>
-              <div class="hint">Dùng để “ngửi nhịp” nhanh, không phải khuyến nghị đầu tư.</div>
+
+              <div class="hint">
+                Đây là insight hành vi tiền thật (SMS). Không phải khuyến nghị đầu tư.
+              </div>
             </div>
           </div>
         </div>
 
         <!-- SIGNALS -->
         <div class="card hidden" id="view-signals">
-          <h2>Tín hiệu (fixed scenarios)</h2>
+          <h2>Tín hiệu (Fixed Scenarios)</h2>
+
           <div class="tabs">
             <button class="tab active" data-sid="hot_15m">HOT 15m</button>
             <button class="tab" data-sid="flow_30m">NET FLOW 30m</button>
@@ -97,46 +127,67 @@
           </div>
 
           <div class="table" id="signalsTable"></div>
-          <div class="hint">Mục tiêu: insight rõ ràng để user tự quyết định mua/bán.</div>
+
+          <div class="hint">
+            Gợi ý cách dùng: ưu tiên “vào mã spike” khi Net Flow dương mạnh & Hot Score chưa quá cao. Follow Top khi thị trường nóng (late trend). Đứng ngoài khi không đồng thuận.
+          </div>
         </div>
 
         <!-- WATCHLIST -->
         <div class="card hidden" id="view-watchlist">
           <h2>Watchlist</h2>
           <div class="row">
-            <div class="muted">Hiện tại là watchlist fixed (sau này anh có thể cho user tự set).</div>
+            <div class="muted">
+              Watchlist hiện tại là danh sách cố định (MVP). Sau này có thể cho user tự chọn.
+            </div>
           </div>
+
           <div class="chips" id="watchChips"></div>
 
           <div class="hr"></div>
+
           <h3>Snapshot nhanh cho Watchlist</h3>
           <div class="table" id="watchTable"></div>
+
+          <div class="hint">
+            Snapshot giúp lọc nhanh mã đáng mở chart trước: Hot Count + Net Flow.
+          </div>
         </div>
 
         <!-- REPORTS -->
         <div class="card hidden" id="view-reports">
           <h2>Báo cáo</h2>
-          <p class="muted">MVP: chỉ hiển thị “Daily Brief” dạng text (sau này xuất CSV/PDF bằng R2).</p>
+          <p class="muted">
+            MVP: “Daily Brief” dạng text. Sau này có thể xuất CSV/PDF qua Worker + R2.
+          </p>
           <div class="brief" id="dailyBrief">—</div>
         </div>
 
         <!-- LOGS -->
         <div class="card hidden" id="view-logs">
           <h2>Logs</h2>
-          <div class="logs" id="logsBox"></div>
+          <div class="logs" id="logsBox">—</div>
+          <div class="hint">
+            Logs chỉ phục vụ debug UI/API. Không lưu dữ liệu nhạy cảm.
+          </div>
         </div>
 
         <!-- SETTINGS -->
         <div class="card hidden" id="view-settings">
           <h2>Cài đặt</h2>
-          <label class="chk"><input type="checkbox" id="toggleLight" /> Light Mode</label>
-          <div class="hint">UI-only. Không ảnh hưởng data.</div>
+          <label class="chk">
+            <input type="checkbox" id="toggleLight" />
+            Light Mode (UI-only)
+          </label>
+          <div class="hint">
+            Cài đặt này chỉ đổi màu nền hiển thị, không ảnh hưởng dữ liệu.
+          </div>
         </div>
 
       </section>
     </main>
   </div>
 
-  <script src="./public/app.js"></script>
+  <script src="./app.js"></script>
 </body>
 </html>
