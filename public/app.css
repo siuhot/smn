@@ -15,6 +15,8 @@
 
 *{ box-sizing:border-box; }
 html,body{ height:100%; }
+
+/* ===== Background base ===== */
 body{
   margin:0;
   font-family:var(--sans);
@@ -22,9 +24,27 @@ body{
               radial-gradient(900px 500px at 80% 0%, rgba(168,85,247,.16), transparent 55%),
               var(--bg);
   color:var(--text);
+  position: relative;
 }
 
-.app{ display:flex; min-height:100dvh; }
+/* ===== Normalize tint overlay (fix lệch màu nền theo dải) ===== */
+body::before{
+  content:"";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background:
+    linear-gradient(180deg,
+      rgba(11,18,32,.72) 0%,
+      rgba(11,18,32,.78) 55%,
+      rgba(11,18,32,.82) 100%),
+    radial-gradient(900px 600px at 20% 10%, rgba(39,198,255,.10), transparent 60%),
+    radial-gradient(900px 600px at 80% 0%, rgba(168,85,247,.08), transparent 55%);
+}
+
+/* đảm bảo app nằm trên overlay */
+.app{ display:flex; min-height:100dvh; position: relative; z-index: 1; }
 
 .sidebar{
   width:260px;
@@ -106,9 +126,11 @@ body{
 .btn.ghost{ background: transparent; }
 
 .content{ padding:18px; overflow:auto; }
+
+/* ===== Unified surface color (fix tint mismatch) ===== */
 .card{
   border:1px solid var(--stroke);
-  background: rgba(255,255,255,.04);
+  background: rgba(11,18,32,.55); /* unified */
   border-radius: var(--r);
   padding:16px;
   box-shadow: var(--shadow);
@@ -131,7 +153,7 @@ body{
 
 .panel{
   border:1px solid var(--stroke);
-  background: rgba(0,0,0,.18);
+  background: rgba(11,18,32,.55); /* unified */
   border-radius: var(--r);
   padding:12px;
 }
@@ -149,7 +171,7 @@ body{
 }
 .tile{
   border:1px solid var(--stroke);
-  background: rgba(0,0,0,.18);
+  background: rgba(11,18,32,.55); /* unified */
   border-radius: 16px;
   padding:12px;
 }
@@ -160,7 +182,7 @@ body{
 .scenario-list{ display:grid; gap:8px; }
 .sc-item{
   border:1px solid var(--stroke);
-  background: rgba(255,255,255,.04);
+  background: rgba(11,18,32,.55); /* unified */
   border-radius: 14px;
   padding:10px 12px;
 }
@@ -175,7 +197,7 @@ body{
 .tabs{ display:flex; gap:8px; margin:10px 0 12px; flex-wrap:wrap; }
 .tab{
   border:1px solid var(--stroke);
-  background: rgba(255,255,255,.04);
+  background: rgba(11,18,32,.55); /* unified */
   color: var(--text);
   padding:8px 10px;
   border-radius: 999px;
@@ -198,7 +220,10 @@ body{
   display:grid;
   gap:0;
 }
-.thead{ background: rgba(0,0,0,.22); font-weight:900; }
+.thead{
+  background: rgba(11,18,32,.70); /* unified */
+  font-weight:900;
+}
 .tcell{
   padding:10px 12px;
   border-bottom:1px solid var(--stroke);
@@ -210,7 +235,7 @@ body{
 .chips{ display:flex; gap:8px; flex-wrap:wrap; }
 .chip{
   border:1px solid var(--stroke);
-  background: rgba(0,0,0,.18);
+  background: rgba(11,18,32,.55); /* unified */
   border-radius: 999px;
   padding:8px 10px;
   font-family: var(--mono);
@@ -219,7 +244,7 @@ body{
 
 .brief{
   border:1px solid var(--stroke);
-  background: rgba(0,0,0,.18);
+  background: rgba(11,18,32,.55); /* unified */
   border-radius: 16px;
   padding:12px;
   white-space: pre-wrap;
@@ -242,7 +267,7 @@ body{
   padding: 12px 14px;
   border-radius: 14px;
   border:1px solid var(--stroke);
-  background: rgba(0,0,0,.18);
+  background: rgba(11,18,32,.55); /* unified */
   font-weight: 950;
   letter-spacing:.25px;
 }
